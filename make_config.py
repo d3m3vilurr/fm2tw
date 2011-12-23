@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import tweepy
 
-def main(filename):
+def main(filename='config.yaml'):
     #print "First create your application: https://dev.twitter.com/apps"
     #CONSUMER_KEY = raw_input("Consumer key? ").strip()
     #CONSUMER_SECRET = raw_input("Consumer secret? ").strip()
@@ -18,7 +18,7 @@ def main(filename):
     lastfm = raw_input("LASTFM ID? ").strip()
     LASTFM_FEED = \
         "http://ws.audioscrobbler.com/2.0/user/%s/recenttracks.rss" % lastfm
-    f = open("config.yaml", "w")
+    f = open(filename, "w")
     f.write("CONSUMER_KEY: %s\n" % CONSUMER_KEY)
     f.write("CONSUMER_SECRET: %s\n" % CONSUMER_SECRET)
     f.write("ACCESS_TOKEN_KEY: %s\n" % ACCESS_TOKEN_KEY)
