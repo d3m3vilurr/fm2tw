@@ -110,10 +110,19 @@ def _post_twitter(scrob, post_format=None):
         CONFIG["ACCESS_TOKEN_SECRET"]
     )
     api = tweepy.API(auth)
-    api.update_status(post_format.format(
-        title=scrob.get('title').encode('utf-8'),
-        link=scrob.get('link')
-    ))
+    dup = 0
+    while True:
+        title = scrob.get('title').encode('utf-8')
+        title = len(title) < 100 and title or (title[:100] + '...')
+        msg = post_format.format(
+            title=title, link=scrob.get('link'),
+            duplicate=dup and ("(%d)" % dup) or ""
+        )
+        try:
+            api.update_status(msg)
+            return
+        except tweepy.TweepError:
+            dup += 1
 
 def new_post(scrob, last, post_format=None):
     title = scrob.get('title').encode('utf-8')
