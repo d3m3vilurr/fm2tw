@@ -123,6 +123,8 @@ def _post_twitter(scrob, post_format=None):
             return
         except tweepy.TweepError:
             dup += 1
+            if dup >= 500:
+                raise
 
 def new_post(scrob, last, post_format=None):
     title = scrob.get('title').encode('utf-8')
