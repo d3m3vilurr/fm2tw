@@ -119,7 +119,7 @@ def _post_twitter(scrob, post_format=None):
             duplicate=dup and ("(%d)" % dup) or ""
         )
         try:
-            api.update_status(msg)
+            api.update_status(status=msg)
             return
         except tweepy.TweepError:
             dup += 1

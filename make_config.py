@@ -13,8 +13,8 @@ def main(filename='config.yaml'):
     print "Auth check: " + auth_url
     pin = raw_input("PIN code? ").strip()
     auth.get_access_token(pin)
-    ACCESS_TOKEN_KEY = auth.access_token.key
-    ACCESS_TOKEN_SECRET = auth.access_token.secret
+    ACCESS_TOKEN_KEY = auth.access_token
+    ACCESS_TOKEN_SECRET = auth.access_token_secret
     lastfm = raw_input("LASTFM ID? ").strip()
     LASTFM_FEED = \
         "http://ws.audioscrobbler.com/2.0/user/%s/recenttracks.rss" % lastfm
