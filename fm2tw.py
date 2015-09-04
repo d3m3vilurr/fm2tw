@@ -3,9 +3,13 @@
 import yaml
 import tweepy
 import sqlite3
-import feedparser
 import datetime
 import time
+try:
+    import simplejson as json
+except ImportError:
+    import json
+import urllib
 
 STORE_VERSION = 1
 DATE_FORMAT = "%a, %d %b %Y %H:%M:%S +0000"
@@ -65,21 +69,28 @@ def last_post():
     else:
         return dict()
 
-def get_lastfm(feed):
-    items = feedparser.parse(feed).entries
-    return items and items[0] or dict()
+def get_lastfm(key, user):
+    url = 'http://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks' \
+        + '&api_key=' + key \
+        + '&user=' + user \
+        + '&limit=1' \
+        + '&format=json'
+    f = urllib.urlopen(url)
+    data = json.load(f)
+    recenttracks = data.get('recenttracks', {})
+    return recenttracks.get('track', [{}])[0]
 
 def _check_exist(scrob, last):
-    title = scrob.get('title').encode('utf-8')
+    title = scrob.get('name').encode('utf-8')
     updated = datetime.datetime \
-                      .strptime(scrob.get('updated'), DATE_FORMAT)
+                      .fromtimestamp(int(scrob.get('date').get('uts')))
     updated_range = (updated - datetime.timedelta(1./24)) \
                         .strftime("%Y-%m-%d %H:%M:%S")
     if (updated <= \
         datetime.datetime.utcnow() - datetime.timedelta(10./24/60)):
         print "SKIP OLD PLAY MUSIC: %s" % title
         return True
-    if (last and last.get('message') == scrob.get('title') and \
+    if (last and last.get('message') == scrob.get('name') and \
         updated_range <= last.get('updated')):
         print "SKIP SAME MUSIC: %s" % title
         return True
@@ -92,10 +103,10 @@ def _save_storage(scrob):
         values (?, ?)
     """
     updated = datetime.datetime \
-                      .strptime(scrob.get('updated'), DATE_FORMAT)
+                      .fromtimestamp(int(scrob.get('date').get('uts')))
     cursor.execute(
         query,
-        (scrob.get('title'), updated.strftime("%Y-%m-%d %H:%M:%S"))
+        (scrob.get('name'), updated.strftime("%Y-%m-%d %H:%M:%S"))
     )
     conn.commit()
 
@@ -112,10 +123,10 @@ def _post_twitter(scrob, post_format=None):
     api = tweepy.API(auth)
     dup = 0
     while True:
-        title = scrob.get('title').encode('utf-8')
+        title = scrob.get('name').encode('utf-8')
         title = len(title) < 100 and title or (title[:100] + '...')
         msg = post_format.format(
-            title=title, link=scrob.get('link'),
+            title=title, link=scrob.get('url'),
             duplicate=dup and ("(%d)" % dup) or ""
         )
         try:
@@ -127,14 +138,14 @@ def _post_twitter(scrob, post_format=None):
                 raise
 
 def new_post(scrob, last, post_format=None):
-    title = scrob.get('title').encode('utf-8')
+    title = scrob.get('name').encode('utf-8')
     print "NEW POST MUSIC: %s" % title
     _save_storage(scrob)
     _post_twitter(scrob, post_format)
 
 def main():
     last = last_post()
-    scrob = get_lastfm(CONFIG["LASTFM_FEED"])
+    scrob = get_lastfm(CONFIG["LASTFM_KEY"], CONFIG["LASTFM_USER"])
     if _check_exist(scrob, last):
         return
     new_post(scrob, last, CONFIG.get("POST_FORMAT"))
