@@ -73,15 +73,20 @@ def get_lastfm(key, user):
     url = 'http://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks' \
         + '&api_key=' + key \
         + '&user=' + user \
-        + '&limit=1' \
+        + '&limit=2' \
         + '&format=json'
     f = urllib.urlopen(url)
     data = json.load(f)
     recenttracks = data.get('recenttracks', {})
-    return recenttracks.get('track', [{}])[0]
+    tracks = filter(lambda x: x.get('date'), recenttracks.get('track'))
+    return recenttracks.get('track')[0]
+
+def _get_title(scrob):
+    return ' - '.join((scrob.get('artist').get('#text').encode('utf-8'),
+                       scrob.get('name').encode('utf-8')))
 
 def _check_exist(scrob, last):
-    title = scrob.get('name').encode('utf-8')
+    title = _get_title(scrob)
     updated = datetime.datetime \
                       .fromtimestamp(int(scrob.get('date').get('uts')))
     updated_range = (updated - datetime.timedelta(1./24)) \
@@ -90,7 +95,7 @@ def _check_exist(scrob, last):
         datetime.datetime.utcnow() - datetime.timedelta(10./24/60)):
         print "SKIP OLD PLAY MUSIC: %s" % title
         return True
-    if (last and last.get('message') == scrob.get('name') and \
+    if (last and last.get('message') == title and \
         updated_range <= last.get('updated')):
         print "SKIP SAME MUSIC: %s" % title
         return True
@@ -106,7 +111,7 @@ def _save_storage(scrob):
                       .fromtimestamp(int(scrob.get('date').get('uts')))
     cursor.execute(
         query,
-        (scrob.get('name'), updated.strftime("%Y-%m-%d %H:%M:%S"))
+        (_get_title(scrob), updated.strftime("%Y-%m-%d %H:%M:%S"))
     )
     conn.commit()
 
@@ -123,7 +128,7 @@ def _post_twitter(scrob, post_format=None):
     api = tweepy.API(auth)
     dup = 0
     while True:
-        title = scrob.get('name').encode('utf-8')
+        title = _get_title(scrob)
         title = len(title) < 100 and title or (title[:100] + '...')
         msg = post_format.format(
             title=title, link=scrob.get('url'),
@@ -138,7 +143,7 @@ def _post_twitter(scrob, post_format=None):
                 raise
 
 def new_post(scrob, last, post_format=None):
-    title = scrob.get('name').encode('utf-8')
+    title = _get_title(scrob)
     print "NEW POST MUSIC: %s" % title
     _save_storage(scrob)
     _post_twitter(scrob, post_format)
