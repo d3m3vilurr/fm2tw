@@ -95,7 +95,7 @@ def _check_exist(scrob, last):
         datetime.datetime.utcnow() - datetime.timedelta(10./24/60)):
         print "SKIP OLD PLAY MUSIC: %s" % title
         return True
-    if (last and last.get('message') == title.decode() and \
+    if (last and last.get('message') == title.decode('utf-8') and \
         updated_range <= last.get('updated')):
         print "SKIP SAME MUSIC: %s" % title
         return True
@@ -111,7 +111,7 @@ def _save_storage(scrob):
                       .fromtimestamp(int(scrob.get('date').get('uts')))
     cursor.execute(
         query,
-        (_get_title(scrob).decode(), updated.strftime("%Y-%m-%d %H:%M:%S"))
+        (_get_title(scrob).decode('utf-8'), updated.strftime("%Y-%m-%d %H:%M:%S"))
     )
     conn.commit()
 
