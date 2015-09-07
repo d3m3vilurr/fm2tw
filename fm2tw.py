@@ -79,7 +79,7 @@ def get_lastfm(key, user):
     data = json.load(f)
     recenttracks = data.get('recenttracks', {})
     tracks = filter(lambda x: x.get('date'), recenttracks.get('track'))
-    return recenttracks.get('track')[0]
+    return tracks[0]
 
 def _get_title(scrob):
     return ' - '.join((scrob.get('artist').get('#text').encode('utf-8'),
