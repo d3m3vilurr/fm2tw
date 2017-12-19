@@ -9,12 +9,12 @@ try:
     import simplejson as json
 except ImportError:
     import json
-import urllib
+from urllib.request import urlopen
 
 STORE_VERSION = 1
 DATE_FORMAT = "%a, %d %b %Y %H:%M:%S +0000"
 DEFAULT_POST_FORMAT = "#NowPlaying \"{title}\" via Last.fm {link}"
-CONFIG = yaml.load(file('config.yaml'))
+CONFIG = yaml.load(open('config.yaml'))
 DB_SESSION = None
 
 def open_storage():
@@ -75,15 +75,15 @@ def get_lastfm(key, user):
         + '&user=' + user \
         + '&limit=2' \
         + '&format=json'
-    f = urllib.urlopen(url)
+    f = urlopen(url)
     data = json.load(f)
     recenttracks = data.get('recenttracks', {})
-    tracks = filter(lambda x: x.get('date'), recenttracks.get('track'))
+    tracks = tuple(filter(lambda x: x.get('date'), recenttracks.get('track')))
     return tracks[0]
 
 def _get_title(scrob):
-    return ' - '.join((scrob.get('artist').get('#text').encode('utf-8'),
-                       scrob.get('name').encode('utf-8')))
+    return ' - '.join((scrob.get('artist').get('#text'),
+                       scrob.get('name')))
 
 def _check_exist(scrob, last):
     title = _get_title(scrob)
@@ -93,11 +93,11 @@ def _check_exist(scrob, last):
                         .strftime("%Y-%m-%d %H:%M:%S")
     if (updated <= \
         datetime.datetime.utcnow() - datetime.timedelta(10./24/60)):
-        print "SKIP OLD PLAY MUSIC: %s" % title
+        print("SKIP OLD PLAY MUSIC: %s" % title)
         return True
     if (last and last.get('message') == title.decode('utf-8') and \
         updated_range <= last.get('updated')):
-        print "SKIP SAME MUSIC: %s" % title
+        print("SKIP SAME MUSIC: %s" % title)
         return True
 
 def _save_storage(scrob):
@@ -111,7 +111,7 @@ def _save_storage(scrob):
                       .fromtimestamp(int(scrob.get('date').get('uts')))
     cursor.execute(
         query,
-        (_get_title(scrob).decode('utf-8'), updated.strftime("%Y-%m-%d %H:%M:%S"))
+        (_get_title(scrob), updated.strftime("%Y-%m-%d %H:%M:%S"))
     )
     conn.commit()
 
@@ -144,7 +144,7 @@ def _post_twitter(scrob, post_format=None):
 
 def new_post(scrob, last, post_format=None):
     title = _get_title(scrob)
-    print "NEW POST MUSIC: %s" % title
+    print("NEW POST MUSIC: %s" % title)
     _save_storage(scrob)
     _post_twitter(scrob, post_format)
 
