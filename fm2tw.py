@@ -14,7 +14,7 @@ from urllib.request import urlopen
 STORE_VERSION = 1
 DATE_FORMAT = "%a, %d %b %Y %H:%M:%S +0000"
 DEFAULT_POST_FORMAT = "#NowPlaying \"{title}\" via Last.fm {link}"
-CONFIG = yaml.load(open('config.yaml'))
+CONFIG = yaml.safe_load(open('config.yaml'))
 DB_SESSION = None
 TWEEPY_SESSION = None
 
